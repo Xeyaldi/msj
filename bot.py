@@ -9,7 +9,7 @@ from pymongo import MongoClient
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-MONGO_URL = os.environ.get("MONGO_URL")  # MongoDB linkini buraya yazacaqsan
+MONGO_URL = os.environ.get("MONGO_URL")
 TAG_BOT_URL = os.environ.get("TAG_BOT_URL", "https://t.me/MisalTagBot")
 MUSIC_BOT_URL = os.environ.get("MUSIC_BOT_URL", "https://t.me/MisalMusicBot")
 
@@ -34,7 +34,7 @@ def reset_weekly():
 def reset_monthly():
     collection.update_many({}, {"$set": {"monthly": 0}})
 
-# Zamanlayıcı (Saat 00:00)
+# Zamanlayıcı
 scheduler = BackgroundScheduler()
 scheduler.add_job(reset_daily, 'cron', hour=0, minute=0)
 scheduler.add_job(reset_weekly, 'cron', day_of_week='mon', hour=0, minute=0)
@@ -54,36 +54,7 @@ async def start(client, message):
     )
     await message.reply_text(text, reply_markup=buttons)
 
-@app.on_message(filters.group & ~filters.bot)
-async def handle_msg(client, message):
-    u_id = message.from_user.id
-    c_id = message.chat.id
-    name = message.from_user.first_name
-    mention = f"[{name}](tg://user?id={u_id})"
-
-    # İstifadəçini bazada tap və ya yarat
-    user_data = collection.find_one({"user_id": u_id, "chat_id": c_id})
-
-    if not user_data:
-        collection.insert_one({
-            "user_id": u_id, "chat_id": c_id, "first_name": name,
-            "daily": 1, "weekly": 1, "monthly": 1, "total": 1
-        })
-        current_total = 1
-    else:
-        collection.update_one(
-            {"user_id": u_id, "chat_id": c_id},
-            {"$inc": {"daily": 1, "weekly": 1, "monthly": 1, "total": 1}, "$set": {"first_name": name}}
-        )
-        current_total = user_data["total"] + 1
-
-    # Təbriklər
-    if current_total == 130:
-        await message.reply_text(random.choice(congrats_130).format(mention))
-    elif current_total == 800:
-        await message.reply_text(random.choice(congrats_800).format(mention))
-
-@app.on_message(filters.command("top"))
+@app.on_message(filters.command("top") & filters.group)
 async def show_top(client, message):
     # Top 13 çəkmək
     top_users = collection.find({"chat_id": message.chat.id}).sort("total", -1).limit(13)
@@ -92,12 +63,38 @@ async def show_top(client, message):
     found = False
     for i, user in enumerate(top_users, 1):
         found = True
-        m = f"[{user['first_name']}](tg://user?id={user['user_id']})"
-        response += f"{i}. {m} : `{user['total']}` mesaj\n"
+        name = user.get('first_name', 'İstifadəçi')
+        response += f"{i}. [{name}](tg://user?id={user['user_id']}) : `{user['total']}` mesaj\n"
     
     if not found:
         return await message.reply_text("Hələ ki, məlumat yoxdur.")
         
     await message.reply_text(response, disable_web_page_preview=True)
+
+# BU HİSSƏ ƏN SONDA OLMALIDIR (və komandaları saymamalıdır)
+@app.on_message(filters.group & ~filters.bot & ~filters.command(["start", "top"]))
+async def handle_msg(client, message):
+    if not message.from_user: return # Kanallar üçün deyilse
+    
+    u_id = message.from_user.id
+    c_id = message.chat.id
+    name = message.from_user.first_name
+    mention = f"[{name}](tg://user?id={u_id})"
+
+    # Update və Data alma
+    user_data = collection.find_one_and_update(
+        {"user_id": u_id, "chat_id": c_id},
+        {"$inc": {"daily": 1, "weekly": 1, "monthly": 1, "total": 1}, "$set": {"first_name": name}},
+        upsert=True,
+        return_document=True
+    )
+
+    current_total = user_data["total"]
+
+    # Təbriklər
+    if current_total == 130:
+        await message.reply_text(random.choice(congrats_130).format(mention))
+    elif current_total == 800:
+        await message.reply_text(random.choice(congrats_800).format(mention))
 
 app.run()
