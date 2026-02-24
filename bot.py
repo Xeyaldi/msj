@@ -76,7 +76,7 @@ def generate_top_text(chat_id, user_id, category_key, title):
         name = user.get('first_name', 'İstifadəçi')
         
         icon = medals.get(i, "🔸")
-        response += f"{icon} {i}. {name} . `{score}`\n"
+        response += f"{icon} {i}. {name} - `{score}`\n"
     
     if not found:
         return f"❌ **{title}** üzrə hələ ki, məlumat yoxdur."
