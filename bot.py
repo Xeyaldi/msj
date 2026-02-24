@@ -32,12 +32,13 @@ def get_rank(score):
 # --- DÜYMƏLƏR (Olduğu kimi + Yeni düymələr) ---
 
 def get_start_buttons():
+    # Botun istifadəçi adını dinamik almaq üçün
+    bot_username = app.get_me().username if app.is_connected else "bot"
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📖 Komandalar", callback_data="open_commands")],
-        [InlineKeyboardButton("👤 Mənim Statistikam", callback_data="my_stats")], # Yeni
+        [InlineKeyboardButton("➕ Məni Qrupa Əlavə Et", url=f"https://t.me/{bot_username}?startgroup=true")],
         [InlineKeyboardButton("📢 Bot Kanalı", url=BOT_KANAL_URL),
-         InlineKeyboardButton("🎵 Musiqi Botu", url=MUSIC_BOT_URL)],
-        [InlineKeyboardButton("➕ Məni Qrupa Əlavə Et", url=f"https://t.me/{(app.get_me()).username}?startgroup=true")]
+         InlineKeyboardButton("🎵 Musiqi Botu", url=MUSIC_BOT_URL)]
     ])
 
 def get_command_help_buttons():
@@ -108,11 +109,13 @@ async def start_handler(client, message):
         BotCommand("help", "Kömək menyusu")
     ])
 
-    # Log xətasını (ChatType) həll edən hissə
     if message.chat.type == ChatType.PRIVATE:
+        # Sənin istədiyin Bot haqqında məlumat və butonlar
         text = (
-            "👋 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
-            "Məni qrupunuza əlavə edərək aktivliyi ölçə bilərsiniz."
+            "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
+            "Mən qruplardakı mesaj aktivliyini izləyirəm, reytinq siyahısı hazırlayıram "
+            "və istifadəçilərə yazdıqları mesaj sayına görə müxtəlif rütbələr verirəm.\n\n"
+            "Aşağıdakı butonlardan istifadə edərək komandalarla tanış ola və ya məni qrupunuza əlavə edə bilərsiniz."
         )
         await message.reply_text(text, reply_markup=get_start_buttons())
     else:
@@ -154,7 +157,11 @@ async def admin_reset(client, message):
 async def callback_handler(client, query: CallbackQuery):
     if query.data == "open_commands":
         help_text = (
-            "📖 **Komandalar menyusu:**\n\n🔹 `/top` - Reytinq\n🔹 `/me` - Statistikanız\n🔹 `/start` - Başlat"
+            "📖 **Komandalar menyusu:**\n\n"
+            "🔹 `/top` - Qrup reytinqini göstərər\n"
+            "🔹 `/me` - Sizin şəxsi statistikanız\n"
+            "🔹 `/help` - Kömək menyusu\n"
+            "🔹 `/start` - Botu yenidən başladar"
         )
         await query.edit_message_text(help_text, reply_markup=get_command_help_buttons())
     
@@ -162,7 +169,10 @@ async def callback_handler(client, query: CallbackQuery):
         await query.answer("Qrupda /me yazaraq baxa bilərsiniz!", show_alert=True)
 
     elif query.data == "back_to_start":
-        text = "👋 **Salam! Mən Mesaj Sayğacı Botuyam.**"
+        text = (
+            "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
+            "Mən qruplardakı mesaj aktivliyini izləyirəm, reytinq siyahısı hazırlayıram."
+        )
         await query.edit_message_text(text, reply_markup=get_start_buttons())
     
     elif query.data.startswith("top_"):
@@ -198,4 +208,4 @@ async def message_handler(client, message):
     elif total == 800:
         await message.reply_text(f"Vay! {name} tam 800 mesaj yazdı! 🏆")
 
-app.run()                    
+app.run()
