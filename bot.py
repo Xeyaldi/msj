@@ -11,7 +11,7 @@ API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 MONGO_URL = os.environ.get("MONGO_URL")
-OWNER_ID = 123456789 # Öz ID-ni bura yaz
+OWNER_ID = 8024893255
 
 BOT_KANAL_URL = os.environ.get("BOT_KANAL_URL", "https://t.me/SeninKanalin")
 MUSIC_BOT_URL = os.environ.get("MUSIC_BOT_URL", "https://t.me/MisalMusicBot")
@@ -29,11 +29,12 @@ def get_rank(score):
     if score < 2000: return "Aktiv Üzv 🔥"
     return "Söhbət Kralı 👑"
 
-# --- DÜYMƏLƏR (Olduğu kimi + Yeni düymələr) ---
+# --- DÜYMƏLƏR (Düzəliş edildi) ---
 
-def get_start_buttons():
-    # Botun istifadəçi adını dinamik almaq üçün
-    bot_username = app.get_me().username if app.is_connected else "bot"
+async def get_start_buttons():
+    # Asinxron şəkildə botun məlumatlarını alırıq
+    me = await app.get_me()
+    bot_username = me.username
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📖 Komandalar", callback_data="open_commands")],
         [InlineKeyboardButton("➕ Məni Qrupa Əlavə Et", url=f"https://t.me/{bot_username}?startgroup=true")],
@@ -110,14 +111,15 @@ async def start_handler(client, message):
     ])
 
     if message.chat.type == ChatType.PRIVATE:
-        # Sənin istədiyin Bot haqqında məlumat və butonlar
         text = (
             "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
             "Mən qruplardakı mesaj aktivliyini izləyirəm, reytinq siyahısı hazırlayıram "
             "və istifadəçilərə yazdıqları mesaj sayına görə müxtəlif rütbələr verirəm.\n\n"
             "Aşağıdakı butonlardan istifadə edərək komandalarla tanış ola və ya məni qrupunuza əlavə edə bilərsiniz."
         )
-        await message.reply_text(text, reply_markup=get_start_buttons())
+        # Bura await əlavə edildi
+        buttons = await get_start_buttons()
+        await message.reply_text(text, reply_markup=buttons)
     else:
         await top_command(client, message)
 
@@ -173,7 +175,9 @@ async def callback_handler(client, query: CallbackQuery):
             "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
             "Mən qruplardakı mesaj aktivliyini izləyirəm, reytinq siyahısı hazırlayıram."
         )
-        await query.edit_message_text(text, reply_markup=get_start_buttons())
+        # Bura await əlavə edildi
+        buttons = await get_start_buttons()
+        await query.edit_message_text(text, reply_markup=buttons)
     
     elif query.data.startswith("top_"):
         data = query.data.split("_")[1]
