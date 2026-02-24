@@ -2,7 +2,7 @@ import os
 import random
 from pyrogram import Client, filters, types
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BotCommand
-from pyrogram.enums import ChatType # Heroku xətası üçün vacib əlavə
+from pyrogram.enums import ChatType
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 
@@ -11,7 +11,7 @@ API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 MONGO_URL = os.environ.get("MONGO_URL")
-OWNER_ID = 123456789 # Öz ID-ni bura yaz
+OWNER_ID = 123456789 
 
 BOT_KANAL_URL = os.environ.get("BOT_KANAL_URL", "https://t.me/SeninKanalin")
 MUSIC_BOT_URL = os.environ.get("MUSIC_BOT_URL", "https://t.me/MisalMusicBot")
@@ -60,7 +60,7 @@ def announce_winner():
                 app.send_message(c_id, f"🏆 **Günün Qalibi Elan Edildi!**\n\n👤 **{user['first_name']}** bu gün tam `{user['daily']}` mesaj yazaraq günün birincisi oldu! 🎉")
             except: pass
 
-# --- TOP SİYAHI (Medallar və Şəxsi Statistik) ---
+# --- TOP SİYAHI ---
 
 def generate_top_text(chat_id, user_id, category_key, title):
     top_users = collection.find({"chat_id": chat_id}).sort(category_key, -1).limit(13)
@@ -76,18 +76,17 @@ def generate_top_text(chat_id, user_id, category_key, title):
         name = user.get('first_name', 'İstifadəçi')
         
         icon = medals.get(i, "🔸")
-        response += f"{icon} {i}. **{name}** — `{score}`\n"
+        response += f"{icon} {i}. {name} . `{score}`\n"
     
     if not found:
         return f"❌ **{title}** üzrə hələ ki, məlumat yoxdur."
     
-    # Siyahını açan adamın statistikası
     requester = collection.find_one({"user_id": user_id, "chat_id": chat_id})
     req_score = requester.get(category_key, 0) if requester else 0
     
     response += "──────────────────────\n"
     response += f"📊 Sənin {title.lower()} mesaj sayın: `{req_score}`\n"
-    response += "💬 *Mesaj yazaraq reytinqə gir!*"
+    response += "💬 Mesaj yazaraq reytinqə gir!"
     return response
 
 # --- RESET (SIFIRLAMA) ---
@@ -155,7 +154,12 @@ async def callback_handler(client, query: CallbackQuery):
         await query.edit_message_text(help_text, reply_markup=get_command_help_buttons())
     
     elif query.data == "back_to_start":
-        text = "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**"
+        # Sənin istədiyin düzəliş: Start mətni ilə eyniləşdirildi
+        text = (
+            "🤖 **Salam! Mən Mesaj Sayğacı Botuyam.**\n\n"
+            "Mən qruplardakı mesaj aktivliyini izləyirəm və reytinq siyahısı hazırlayıram.\n"
+            "Aşağıdakı butonlardan istifadə edərək komandaları görə bilərsiniz."
+        )
         buttons = await get_start_buttons()
         await query.edit_message_text(text, reply_markup=buttons)
     
@@ -194,4 +198,3 @@ async def message_handler(client, message):
         except: pass
 
 app.run()
-        
