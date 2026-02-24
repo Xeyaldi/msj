@@ -1,4 +1,5 @@
 pyrogram
 tgcrypto
 apscheduler
-pymongo[srv]
+pymongo
+dnspython
